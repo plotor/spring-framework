@@ -116,6 +116,9 @@ import org.springframework.lang.Nullable;
 public interface BeanFactory {
 
     /**
+     * 用户使用容器时可以使用转义符“&”来得到 FactoryBean 实例，用来区分通过容器获取的是 FactoryBean 产生的对象还是获取 FactoryBean 实例本身，
+     * 例如：如果 myBean 是一个 FactoryBean，那么使用“&myBean”得到的是 FactoryBean 实例，而不是 myBean 这个由 FactoryBean 构造的实例
+     *
      * Used to dereference a {@link FactoryBean} instance and distinguish it from
      * beans <i>created</i> by the FactoryBean. For example, if the bean named
      * {@code myJndiObject} is a FactoryBean, getting {@code &myJndiObject}
@@ -124,6 +127,8 @@ public interface BeanFactory {
     String FACTORY_BEAN_PREFIX = "&";
 
     /**
+     * 根据 bean 的名字获取对应的 bean 实例
+     *
      * Return an instance, which may be shared or independent, of the specified bean.
      * <p>This method allows a Spring BeanFactory to be used as a replacement for the
      * Singleton or Prototype design pattern. Callers may retain references to
@@ -191,6 +196,8 @@ public interface BeanFactory {
     <T> T getBean(Class<T> requiredType) throws BeansException;
 
     /**
+     * 根据 bean 类型获取对应的 bean 实例，可以指定构造函数的参数或者工厂方法的参数
+     *
      * Return an instance, which may be shared or independent, of the specified bean.
      * <p>Allows for specifying explicit constructor arguments / factory method arguments,
      * overriding the specified default arguments (if any) in the bean definition.

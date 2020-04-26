@@ -56,9 +56,7 @@ import java.util.function.Supplier;
  * @see ChildBeanDefinition
  */
 @SuppressWarnings("serial")
-public abstract class AbstractBeanDefinition
-        extends BeanMetadataAttributeAccessor
-        implements BeanDefinition, Cloneable {
+public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccessor implements BeanDefinition, Cloneable {
 
     /**
      * Constant for the default scope name: {@code ""}, equivalent to singleton
@@ -181,44 +179,75 @@ public abstract class AbstractBeanDefinition
     /** 对应 qualifier 属性 */
     private final Map<String, AutowireCandidateQualifier> qualifiers = new LinkedHashMap<>();
 
+    /** 创建 bean 实例时的回调函数 */
     @Nullable
     private Supplier<?> instanceSupplier;
 
+    /** 非配置项，表示允许访问非公开的构造器和方法，由程序设置 */
     private boolean nonPublicAccessAllowed = true;
 
+    /**
+     * 非配置项，表示是否允许以宽松的模式解析构造函数，由程序设置
+     *
+     * 例如：如果设置为 true，则在下列情况时不会抛出异常（示例来源于《Spring 源码深度解析》）
+     * interface ITest{}
+     * class ITestImpl implements ITest {}
+     * class Main {
+     * Main(ITest i){}
+     * Main(ITestImpl i){}
+     * }
+     */
     private boolean lenientConstructorResolution = true;
 
+    /** 对应 factory-bean 属性 */
     @Nullable
     private String factoryBeanName;
 
+    /** 对应 factory-method 属性 */
     @Nullable
     private String factoryMethodName;
 
+    /** 构造函数注入属性，对应 <construct-arg/> 标签 */
     @Nullable
     private ConstructorArgumentValues constructorArgumentValues;
 
+    /** 记录 <property/> 属性集合 */
     @Nullable
     private MutablePropertyValues propertyValues;
 
+    /** 记录 <lookup-method/> 和 <replaced-method/> 标签配置 */
     private MethodOverrides methodOverrides = new MethodOverrides();
 
+    /** 对应 init-method 属性 */
     @Nullable
     private String initMethodName;
 
+    /** 对应 destroy-method 属性 */
     @Nullable
     private String destroyMethodName;
 
+    /** 非配置项，是否执行 init-method，由程序设置 */
     private boolean enforceInitMethod = true;
 
+    /** 非配置项，是否执行 destroy-method，由程序设置 */
     private boolean enforceDestroyMethod = true;
 
+    /** 非配置项，表示 bean 是否是用户定义而不是程序定义的，创建 AOP 时为 true，由程序设置 */
     private boolean synthetic = false;
 
+    /**
+     * 非配置项，定义 bean 的应用场景，由程序设置，角色如下：
+     * ROLE_APPLICATION：用户
+     * ROLE_INFRASTRUCTURE：完全内部使用
+     * ROLE_SUPPORT：某些复杂配置的一部分
+     */
     private int role = BeanDefinition.ROLE_APPLICATION;
 
+    /** 描述信息，对应 description 标签 */
     @Nullable
     private String description;
 
+    /** 定义的资源 */
     @Nullable
     private Resource resource;
 
