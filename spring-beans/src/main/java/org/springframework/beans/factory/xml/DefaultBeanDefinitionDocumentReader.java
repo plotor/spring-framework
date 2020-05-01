@@ -16,18 +16,8 @@
 
 package org.springframework.beans.factory.xml;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.LinkedHashSet;
-import java.util.Set;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-
 import org.springframework.beans.factory.BeanDefinitionStoreException;
 import org.springframework.beans.factory.config.BeanDefinitionHolder;
 import org.springframework.beans.factory.parsing.BeanComponentDefinition;
@@ -38,6 +28,15 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ResourceUtils;
 import org.springframework.util.StringUtils;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 /**
  * Default implementation of the {@link BeanDefinitionDocumentReader} interface that
@@ -58,292 +57,288 @@ import org.springframework.util.StringUtils;
  */
 public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocumentReader {
 
-	public static final String BEAN_ELEMENT = BeanDefinitionParserDelegate.BEAN_ELEMENT;
+    public static final String BEAN_ELEMENT = BeanDefinitionParserDelegate.BEAN_ELEMENT;
 
-	public static final String NESTED_BEANS_ELEMENT = "beans";
+    public static final String NESTED_BEANS_ELEMENT = "beans";
 
-	public static final String ALIAS_ELEMENT = "alias";
+    public static final String ALIAS_ELEMENT = "alias";
 
-	public static final String NAME_ATTRIBUTE = "name";
+    public static final String NAME_ATTRIBUTE = "name";
 
-	public static final String ALIAS_ATTRIBUTE = "alias";
+    public static final String ALIAS_ATTRIBUTE = "alias";
 
-	public static final String IMPORT_ELEMENT = "import";
+    public static final String IMPORT_ELEMENT = "import";
 
-	public static final String RESOURCE_ATTRIBUTE = "resource";
+    public static final String RESOURCE_ATTRIBUTE = "resource";
 
-	public static final String PROFILE_ATTRIBUTE = "profile";
+    public static final String PROFILE_ATTRIBUTE = "profile";
 
+    protected final Log logger = LogFactory.getLog(this.getClass());
 
-	protected final Log logger = LogFactory.getLog(getClass());
+    @Nullable
+    private XmlReaderContext readerContext;
 
-	@Nullable
-	private XmlReaderContext readerContext;
+    @Nullable
+    private BeanDefinitionParserDelegate delegate;
 
-	@Nullable
-	private BeanDefinitionParserDelegate delegate;
+    /**
+     * This implementation parses bean definitions according to the "spring-beans" XSD
+     * (or DTD, historically).
+     * <p>Opens a DOM Document; then initializes the default settings
+     * specified at the {@code <beans/>} level; then parses the contained bean definitions.
+     */
+    @Override
+    public void registerBeanDefinitions(Document doc, XmlReaderContext readerContext) {
+        this.readerContext = readerContext;
+        // 从文档的 ROOT 结点开始解析
+        this.doRegisterBeanDefinitions(doc.getDocumentElement());
+    }
 
+    /**
+     * Return the descriptor for the XML resource that this parser works on.
+     */
+    protected final XmlReaderContext getReaderContext() {
+        Assert.state(this.readerContext != null, "No XmlReaderContext available");
+        return this.readerContext;
+    }
 
-	/**
-	 * This implementation parses bean definitions according to the "spring-beans" XSD
-	 * (or DTD, historically).
-	 * <p>Opens a DOM Document; then initializes the default settings
-	 * specified at the {@code <beans/>} level; then parses the contained bean definitions.
-	 */
-	@Override
-	public void registerBeanDefinitions(Document doc, XmlReaderContext readerContext) {
-		this.readerContext = readerContext;
-		doRegisterBeanDefinitions(doc.getDocumentElement());
-	}
+    /**
+     * Invoke the {@link org.springframework.beans.factory.parsing.SourceExtractor}
+     * to pull the source metadata from the supplied {@link Element}.
+     */
+    @Nullable
+    protected Object extractSource(Element ele) {
+        return this.getReaderContext().extractSource(ele);
+    }
 
-	/**
-	 * Return the descriptor for the XML resource that this parser works on.
-	 */
-	protected final XmlReaderContext getReaderContext() {
-		Assert.state(this.readerContext != null, "No XmlReaderContext available");
-		return this.readerContext;
-	}
+    /**
+     * Register each bean definition within the given root {@code <beans/>} element.
+     */
+    @SuppressWarnings("deprecation")  // for Environment.acceptsProfiles(String...)
+    protected void doRegisterBeanDefinitions(Element root) {
+        // Any nested <beans> elements will cause recursion in this method. In
+        // order to propagate and preserve <beans> default-* attributes correctly,
+        // keep track of the current (parent) delegate, which may be null. Create
+        // the new (child) delegate with a reference to the parent for fallback purposes,
+        // then ultimately reset this.delegate back to its original (parent) reference.
+        // this behavior emulates a stack of delegates without actually necessitating one.
+        BeanDefinitionParserDelegate parent = this.delegate;
+        this.delegate = this.createDelegate(this.getReaderContext(), root, parent);
 
-	/**
-	 * Invoke the {@link org.springframework.beans.factory.parsing.SourceExtractor}
-	 * to pull the source metadata from the supplied {@link Element}.
-	 */
-	@Nullable
-	protected Object extractSource(Element ele) {
-		return getReaderContext().extractSource(ele);
-	}
+        // 处理 profile 标签（其作用类比 pom.xml 中的 profile）
+        if (this.delegate.isDefaultNamespace(root)) {
+            String profileSpec = root.getAttribute(PROFILE_ATTRIBUTE);
+            if (StringUtils.hasText(profileSpec)) {
+                String[] specifiedProfiles = StringUtils.tokenizeToStringArray(
+                        profileSpec, BeanDefinitionParserDelegate.MULTI_VALUE_ATTRIBUTE_DELIMITERS);
+                // We cannot use Profiles.of(...) since profile expressions are not supported in XML config. See SPR-12458 for details.
+                if (!this.getReaderContext().getEnvironment().acceptsProfiles(specifiedProfiles)) {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Skipped XML bean definition file due to specified profiles [" + profileSpec +
+                                "] not matching: " + this.getReaderContext().getResource());
+                    }
+                    return;
+                }
+            }
+        }
 
+        // 模板方法，预处理
+        this.preProcessXml(root);
+        // 解析并注册 BeanDefinition
+        this.parseBeanDefinitions(root, this.delegate);
+        // 模板方法，后处理
+        this.postProcessXml(root);
 
-	/**
-	 * Register each bean definition within the given root {@code <beans/>} element.
-	 */
-	@SuppressWarnings("deprecation")  // for Environment.acceptsProfiles(String...)
-	protected void doRegisterBeanDefinitions(Element root) {
-		// Any nested <beans> elements will cause recursion in this method. In
-		// order to propagate and preserve <beans> default-* attributes correctly,
-		// keep track of the current (parent) delegate, which may be null. Create
-		// the new (child) delegate with a reference to the parent for fallback purposes,
-		// then ultimately reset this.delegate back to its original (parent) reference.
-		// this behavior emulates a stack of delegates without actually necessitating one.
-		BeanDefinitionParserDelegate parent = this.delegate;
-		this.delegate = createDelegate(getReaderContext(), root, parent);
+        this.delegate = parent;
+    }
 
-		if (this.delegate.isDefaultNamespace(root)) {
-			String profileSpec = root.getAttribute(PROFILE_ATTRIBUTE);
-			if (StringUtils.hasText(profileSpec)) {
-				String[] specifiedProfiles = StringUtils.tokenizeToStringArray(
-						profileSpec, BeanDefinitionParserDelegate.MULTI_VALUE_ATTRIBUTE_DELIMITERS);
-				// We cannot use Profiles.of(...) since profile expressions are not supported
-				// in XML config. See SPR-12458 for details.
-				if (!getReaderContext().getEnvironment().acceptsProfiles(specifiedProfiles)) {
-					if (logger.isDebugEnabled()) {
-						logger.debug("Skipped XML bean definition file due to specified profiles [" + profileSpec +
-								"] not matching: " + getReaderContext().getResource());
-					}
-					return;
-				}
-			}
-		}
+    protected BeanDefinitionParserDelegate createDelegate(
+            XmlReaderContext readerContext, Element root, @Nullable BeanDefinitionParserDelegate parentDelegate) {
 
-		preProcessXml(root);
-		parseBeanDefinitions(root, this.delegate);
-		postProcessXml(root);
+        BeanDefinitionParserDelegate delegate = new BeanDefinitionParserDelegate(readerContext);
+        delegate.initDefaults(root, parentDelegate);
+        return delegate;
+    }
 
-		this.delegate = parent;
-	}
+    /**
+     * Parse the elements at the root level in the document:
+     * "import", "alias", "bean".
+     *
+     * @param root the DOM root element of the document
+     */
+    protected void parseBeanDefinitions(Element root, BeanDefinitionParserDelegate delegate) {
+        // 解析默认标签
+        if (delegate.isDefaultNamespace(root)) {
+            NodeList nl = root.getChildNodes();
+            for (int i = 0; i < nl.getLength(); i++) {
+                Node node = nl.item(i);
+                if (node instanceof Element) {
+                    Element ele = (Element) node;
+                    // 解析默认标签
+                    if (delegate.isDefaultNamespace(ele)) {
+                        this.parseDefaultElement(ele, delegate);
+                    }
+                    // 解析自定义标签
+                    else {
+                        delegate.parseCustomElement(ele);
+                    }
+                }
+            }
+        }
+        // 解析自定义标签
+        else {
+            delegate.parseCustomElement(root);
+        }
+    }
 
-	protected BeanDefinitionParserDelegate createDelegate(
-			XmlReaderContext readerContext, Element root, @Nullable BeanDefinitionParserDelegate parentDelegate) {
+    private void parseDefaultElement(Element ele, BeanDefinitionParserDelegate delegate) {
+        if (delegate.nodeNameEquals(ele, IMPORT_ELEMENT)) {
+            this.importBeanDefinitionResource(ele);
+        } else if (delegate.nodeNameEquals(ele, ALIAS_ELEMENT)) {
+            this.processAliasRegistration(ele);
+        } else if (delegate.nodeNameEquals(ele, BEAN_ELEMENT)) {
+            this.processBeanDefinition(ele, delegate);
+        } else if (delegate.nodeNameEquals(ele, NESTED_BEANS_ELEMENT)) {
+            // recurse
+            this.doRegisterBeanDefinitions(ele);
+        }
+    }
 
-		BeanDefinitionParserDelegate delegate = new BeanDefinitionParserDelegate(readerContext);
-		delegate.initDefaults(root, parentDelegate);
-		return delegate;
-	}
+    /**
+     * Parse an "import" element and load the bean definitions
+     * from the given resource into the bean factory.
+     */
+    protected void importBeanDefinitionResource(Element ele) {
+        String location = ele.getAttribute(RESOURCE_ATTRIBUTE);
+        if (!StringUtils.hasText(location)) {
+            this.getReaderContext().error("Resource location must not be empty", ele);
+            return;
+        }
 
-	/**
-	 * Parse the elements at the root level in the document:
-	 * "import", "alias", "bean".
-	 * @param root the DOM root element of the document
-	 */
-	protected void parseBeanDefinitions(Element root, BeanDefinitionParserDelegate delegate) {
-		if (delegate.isDefaultNamespace(root)) {
-			NodeList nl = root.getChildNodes();
-			for (int i = 0; i < nl.getLength(); i++) {
-				Node node = nl.item(i);
-				if (node instanceof Element) {
-					Element ele = (Element) node;
-					if (delegate.isDefaultNamespace(ele)) {
-						parseDefaultElement(ele, delegate);
-					}
-					else {
-						delegate.parseCustomElement(ele);
-					}
-				}
-			}
-		}
-		else {
-			delegate.parseCustomElement(root);
-		}
-	}
+        // Resolve system properties: e.g. "${user.dir}"
+        location = this.getReaderContext().getEnvironment().resolveRequiredPlaceholders(location);
 
-	private void parseDefaultElement(Element ele, BeanDefinitionParserDelegate delegate) {
-		if (delegate.nodeNameEquals(ele, IMPORT_ELEMENT)) {
-			importBeanDefinitionResource(ele);
-		}
-		else if (delegate.nodeNameEquals(ele, ALIAS_ELEMENT)) {
-			processAliasRegistration(ele);
-		}
-		else if (delegate.nodeNameEquals(ele, BEAN_ELEMENT)) {
-			processBeanDefinition(ele, delegate);
-		}
-		else if (delegate.nodeNameEquals(ele, NESTED_BEANS_ELEMENT)) {
-			// recurse
-			doRegisterBeanDefinitions(ele);
-		}
-	}
+        Set<Resource> actualResources = new LinkedHashSet<>(4);
 
-	/**
-	 * Parse an "import" element and load the bean definitions
-	 * from the given resource into the bean factory.
-	 */
-	protected void importBeanDefinitionResource(Element ele) {
-		String location = ele.getAttribute(RESOURCE_ATTRIBUTE);
-		if (!StringUtils.hasText(location)) {
-			getReaderContext().error("Resource location must not be empty", ele);
-			return;
-		}
+        // Discover whether the location is an absolute or relative URI
+        boolean absoluteLocation = false;
+        try {
+            absoluteLocation = ResourcePatternUtils.isUrl(location) || ResourceUtils.toURI(location).isAbsolute();
+        } catch (URISyntaxException ex) {
+            // cannot convert to an URI, considering the location relative
+            // unless it is the well-known Spring prefix "classpath*:"
+        }
 
-		// Resolve system properties: e.g. "${user.dir}"
-		location = getReaderContext().getEnvironment().resolveRequiredPlaceholders(location);
+        // Absolute or relative?
+        if (absoluteLocation) {
+            try {
+                int importCount = this.getReaderContext().getReader().loadBeanDefinitions(location, actualResources);
+                if (logger.isTraceEnabled()) {
+                    logger.trace("Imported " + importCount + " bean definitions from URL location [" + location + "]");
+                }
+            } catch (BeanDefinitionStoreException ex) {
+                this.getReaderContext().error(
+                        "Failed to import bean definitions from URL location [" + location + "]", ele, ex);
+            }
+        } else {
+            // No URL -> considering resource location as relative to the current file.
+            try {
+                int importCount;
+                Resource relativeResource = this.getReaderContext().getResource().createRelative(location);
+                if (relativeResource.exists()) {
+                    importCount = this.getReaderContext().getReader().loadBeanDefinitions(relativeResource);
+                    actualResources.add(relativeResource);
+                } else {
+                    String baseLocation = this.getReaderContext().getResource().getURL().toString();
+                    importCount = this.getReaderContext().getReader().loadBeanDefinitions(
+                            StringUtils.applyRelativePath(baseLocation, location), actualResources);
+                }
+                if (logger.isTraceEnabled()) {
+                    logger.trace("Imported " + importCount + " bean definitions from relative location [" + location + "]");
+                }
+            } catch (IOException ex) {
+                this.getReaderContext().error("Failed to resolve current resource location", ele, ex);
+            } catch (BeanDefinitionStoreException ex) {
+                this.getReaderContext().error(
+                        "Failed to import bean definitions from relative location [" + location + "]", ele, ex);
+            }
+        }
+        Resource[] actResArray = actualResources.toArray(new Resource[0]);
+        this.getReaderContext().fireImportProcessed(location, actResArray, this.extractSource(ele));
+    }
 
-		Set<Resource> actualResources = new LinkedHashSet<>(4);
+    /**
+     * Process the given alias element, registering the alias with the registry.
+     */
+    protected void processAliasRegistration(Element ele) {
+        String name = ele.getAttribute(NAME_ATTRIBUTE);
+        String alias = ele.getAttribute(ALIAS_ATTRIBUTE);
+        boolean valid = true;
+        if (!StringUtils.hasText(name)) {
+            this.getReaderContext().error("Name must not be empty", ele);
+            valid = false;
+        }
+        if (!StringUtils.hasText(alias)) {
+            this.getReaderContext().error("Alias must not be empty", ele);
+            valid = false;
+        }
+        if (valid) {
+            try {
+                this.getReaderContext().getRegistry().registerAlias(name, alias);
+            } catch (Exception ex) {
+                this.getReaderContext().error("Failed to register alias '" + alias +
+                        "' for bean with name '" + name + "'", ele, ex);
+            }
+            this.getReaderContext().fireAliasRegistered(name, alias, this.extractSource(ele));
+        }
+    }
 
-		// Discover whether the location is an absolute or relative URI
-		boolean absoluteLocation = false;
-		try {
-			absoluteLocation = ResourcePatternUtils.isUrl(location) || ResourceUtils.toURI(location).isAbsolute();
-		}
-		catch (URISyntaxException ex) {
-			// cannot convert to an URI, considering the location relative
-			// unless it is the well-known Spring prefix "classpath*:"
-		}
+    /**
+     * Process the given bean element, parsing the bean definition
+     * and registering it with the registry.
+     */
+    protected void processBeanDefinition(Element ele, BeanDefinitionParserDelegate delegate) {
+        BeanDefinitionHolder bdHolder = delegate.parseBeanDefinitionElement(ele);
+        if (bdHolder != null) {
+            bdHolder = delegate.decorateBeanDefinitionIfRequired(ele, bdHolder);
+            try {
+                // Register the final decorated instance.
+                BeanDefinitionReaderUtils.registerBeanDefinition(bdHolder, this.getReaderContext().getRegistry());
+            } catch (BeanDefinitionStoreException ex) {
+                this.getReaderContext().error("Failed to register bean definition with name '" +
+                        bdHolder.getBeanName() + "'", ele, ex);
+            }
+            // Send registration event.
+            this.getReaderContext().fireComponentRegistered(new BeanComponentDefinition(bdHolder));
+        }
+    }
 
-		// Absolute or relative?
-		if (absoluteLocation) {
-			try {
-				int importCount = getReaderContext().getReader().loadBeanDefinitions(location, actualResources);
-				if (logger.isTraceEnabled()) {
-					logger.trace("Imported " + importCount + " bean definitions from URL location [" + location + "]");
-				}
-			}
-			catch (BeanDefinitionStoreException ex) {
-				getReaderContext().error(
-						"Failed to import bean definitions from URL location [" + location + "]", ele, ex);
-			}
-		}
-		else {
-			// No URL -> considering resource location as relative to the current file.
-			try {
-				int importCount;
-				Resource relativeResource = getReaderContext().getResource().createRelative(location);
-				if (relativeResource.exists()) {
-					importCount = getReaderContext().getReader().loadBeanDefinitions(relativeResource);
-					actualResources.add(relativeResource);
-				}
-				else {
-					String baseLocation = getReaderContext().getResource().getURL().toString();
-					importCount = getReaderContext().getReader().loadBeanDefinitions(
-							StringUtils.applyRelativePath(baseLocation, location), actualResources);
-				}
-				if (logger.isTraceEnabled()) {
-					logger.trace("Imported " + importCount + " bean definitions from relative location [" + location + "]");
-				}
-			}
-			catch (IOException ex) {
-				getReaderContext().error("Failed to resolve current resource location", ele, ex);
-			}
-			catch (BeanDefinitionStoreException ex) {
-				getReaderContext().error(
-						"Failed to import bean definitions from relative location [" + location + "]", ele, ex);
-			}
-		}
-		Resource[] actResArray = actualResources.toArray(new Resource[0]);
-		getReaderContext().fireImportProcessed(location, actResArray, extractSource(ele));
-	}
+    /**
+     * Allow the XML to be extensible by processing any custom element types first,
+     * before we start to process the bean definitions. This method is a natural
+     * extension point for any other custom pre-processing of the XML.
+     * <p>The default implementation is empty. Subclasses can override this method to
+     * convert custom elements into standard Spring bean definitions, for example.
+     * Implementors have access to the parser's bean definition reader and the
+     * underlying XML resource, through the corresponding accessors.
+     *
+     * @see #getReaderContext()
+     */
+    protected void preProcessXml(Element root) {
+    }
 
-	/**
-	 * Process the given alias element, registering the alias with the registry.
-	 */
-	protected void processAliasRegistration(Element ele) {
-		String name = ele.getAttribute(NAME_ATTRIBUTE);
-		String alias = ele.getAttribute(ALIAS_ATTRIBUTE);
-		boolean valid = true;
-		if (!StringUtils.hasText(name)) {
-			getReaderContext().error("Name must not be empty", ele);
-			valid = false;
-		}
-		if (!StringUtils.hasText(alias)) {
-			getReaderContext().error("Alias must not be empty", ele);
-			valid = false;
-		}
-		if (valid) {
-			try {
-				getReaderContext().getRegistry().registerAlias(name, alias);
-			}
-			catch (Exception ex) {
-				getReaderContext().error("Failed to register alias '" + alias +
-						"' for bean with name '" + name + "'", ele, ex);
-			}
-			getReaderContext().fireAliasRegistered(name, alias, extractSource(ele));
-		}
-	}
-
-	/**
-	 * Process the given bean element, parsing the bean definition
-	 * and registering it with the registry.
-	 */
-	protected void processBeanDefinition(Element ele, BeanDefinitionParserDelegate delegate) {
-		BeanDefinitionHolder bdHolder = delegate.parseBeanDefinitionElement(ele);
-		if (bdHolder != null) {
-			bdHolder = delegate.decorateBeanDefinitionIfRequired(ele, bdHolder);
-			try {
-				// Register the final decorated instance.
-				BeanDefinitionReaderUtils.registerBeanDefinition(bdHolder, getReaderContext().getRegistry());
-			}
-			catch (BeanDefinitionStoreException ex) {
-				getReaderContext().error("Failed to register bean definition with name '" +
-						bdHolder.getBeanName() + "'", ele, ex);
-			}
-			// Send registration event.
-			getReaderContext().fireComponentRegistered(new BeanComponentDefinition(bdHolder));
-		}
-	}
-
-
-	/**
-	 * Allow the XML to be extensible by processing any custom element types first,
-	 * before we start to process the bean definitions. This method is a natural
-	 * extension point for any other custom pre-processing of the XML.
-	 * <p>The default implementation is empty. Subclasses can override this method to
-	 * convert custom elements into standard Spring bean definitions, for example.
-	 * Implementors have access to the parser's bean definition reader and the
-	 * underlying XML resource, through the corresponding accessors.
-	 * @see #getReaderContext()
-	 */
-	protected void preProcessXml(Element root) {
-	}
-
-	/**
-	 * Allow the XML to be extensible by processing any custom element types last,
-	 * after we finished processing the bean definitions. This method is a natural
-	 * extension point for any other custom post-processing of the XML.
-	 * <p>The default implementation is empty. Subclasses can override this method to
-	 * convert custom elements into standard Spring bean definitions, for example.
-	 * Implementors have access to the parser's bean definition reader and the
-	 * underlying XML resource, through the corresponding accessors.
-	 * @see #getReaderContext()
-	 */
-	protected void postProcessXml(Element root) {
-	}
+    /**
+     * Allow the XML to be extensible by processing any custom element types last,
+     * after we finished processing the bean definitions. This method is a natural
+     * extension point for any other custom post-processing of the XML.
+     * <p>The default implementation is empty. Subclasses can override this method to
+     * convert custom elements into standard Spring bean definitions, for example.
+     * Implementors have access to the parser's bean definition reader and the
+     * underlying XML resource, through the corresponding accessors.
+     *
+     * @see #getReaderContext()
+     */
+    protected void postProcessXml(Element root) {
+    }
 
 }
