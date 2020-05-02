@@ -191,14 +191,27 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
         }
     }
 
+    /**
+     * 处理默认标签
+     *
+     * @param ele
+     * @param delegate
+     */
     private void parseDefaultElement(Element ele, BeanDefinitionParserDelegate delegate) {
+        // 处理 import 标签，该标签用于引入其它的 xml 配置文件
         if (delegate.nodeNameEquals(ele, IMPORT_ELEMENT)) {
             this.importBeanDefinitionResource(ele);
-        } else if (delegate.nodeNameEquals(ele, ALIAS_ELEMENT)) {
+        }
+        // 处理 alias 标签，该标签用于为 bean 配置别名
+        else if (delegate.nodeNameEquals(ele, ALIAS_ELEMENT)) {
             this.processAliasRegistration(ele);
-        } else if (delegate.nodeNameEquals(ele, BEAN_ELEMENT)) {
+        }
+        // 处理 bean 标签
+        else if (delegate.nodeNameEquals(ele, BEAN_ELEMENT)) {
             this.processBeanDefinition(ele, delegate);
-        } else if (delegate.nodeNameEquals(ele, NESTED_BEANS_ELEMENT)) {
+        }
+        // 处理 beans 标签，即在 <beans /> 中再嵌套 <beans /> 标签
+        else if (delegate.nodeNameEquals(ele, NESTED_BEANS_ELEMENT)) {
             // recurse
             this.doRegisterBeanDefinitions(ele);
         }
@@ -298,17 +311,22 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
      * and registering it with the registry.
      */
     protected void processBeanDefinition(Element ele, BeanDefinitionParserDelegate delegate) {
+        // 1. 解析 bean 元素，包括 id、name、alias 和 class
         BeanDefinitionHolder bdHolder = delegate.parseBeanDefinitionElement(ele);
         if (bdHolder != null) {
+            // 2. 如果默认标签下有自定义标签，则进行解析
             bdHolder = delegate.decorateBeanDefinitionIfRequired(ele, bdHolder);
             try {
-                // Register the final decorated instance.
+                // 3. 注册解析得到的 BeanDefinitionHolder
                 BeanDefinitionReaderUtils.registerBeanDefinition(bdHolder, this.getReaderContext().getRegistry());
             } catch (BeanDefinitionStoreException ex) {
-                this.getReaderContext().error("Failed to register bean definition with name '" +
-                        bdHolder.getBeanName() + "'", ele, ex);
+                this.getReaderContext().error("Failed to register bean definition with name '" + bdHolder.getBeanName() + "'", ele, ex);
             }
-            // Send registration event.
+            /*
+             * 4. 发出响应事件，通知相关监听器这个 bean 定义已经加载完了
+             *
+             * 这里的实现只是为了扩展，Spring 自己并没有对注册实现做任何逻辑处理
+             */
             this.getReaderContext().fireComponentRegistered(new BeanComponentDefinition(bdHolder));
         }
     }
