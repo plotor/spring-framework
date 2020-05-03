@@ -16,19 +16,18 @@
 
 package org.springframework.core;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.util.Assert;
+import org.springframework.util.ObjectUtils;
+import org.springframework.util.StringUtils;
+import org.springframework.util.StringValueResolver;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import org.springframework.util.Assert;
-import org.springframework.util.ObjectUtils;
-import org.springframework.util.StringUtils;
-import org.springframework.util.StringValueResolver;
 
 /**
  * Simple implementation of the {@link AliasRegistry} interface.
@@ -42,182 +41,190 @@ import org.springframework.util.StringValueResolver;
  */
 public class SimpleAliasRegistry implements AliasRegistry {
 
-	/** Logger available to subclasses. */
-	protected final Log logger = LogFactory.getLog(getClass());
+    /** Logger available to subclasses. */
+    protected final Log logger = LogFactory.getLog(this.getClass());
 
-	/** Map from alias to canonical name. */
-	private final Map<String, String> aliasMap = new ConcurrentHashMap<>(16);
+    /** Map from alias to canonical name. */
+    private final Map<String, String> aliasMap = new ConcurrentHashMap<>(16);
 
+    @Override
+    public void registerAlias(String name, String alias) {
+        Assert.hasText(name, "'name' must not be empty");
+        Assert.hasText(alias, "'alias' must not be empty");
+        synchronized (this.aliasMap) {
+            // alias 与 name 相同，则将 alias 从映射关系中删除
+            if (alias.equals(name)) {
+                this.aliasMap.remove(alias);
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Alias definition '" + alias + "' ignored since it points to same name");
+                }
+            }
+            // alias 与 name 不同，建立映射关系
+            else {
+                String registeredName = this.aliasMap.get(alias);
+                if (registeredName != null) {
+                    // 已经建立了正确的映射，直接返回
+                    if (registeredName.equals(name)) {
+                        // An existing alias - no need to re-register
+                        return;
+                    }
+                    // 已经与其它 beanName 建立了映射，且不允许覆盖
+                    if (!this.allowAliasOverriding()) {
+                        throw new IllegalStateException("Cannot define alias '" + alias + "' for name '" +
+                                name + "': It is already registered for name '" + registeredName + "'.");
+                    }
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Overriding alias '" + alias + "' definition for registered name '" +
+                                registeredName + "' with new target name '" + name + "'");
+                    }
+                }
+                // 检测 name 和 alias 之间是否构成环路，如果构成环路则抛出异常
+                this.checkForAliasCircle(name, alias);
+                // 不存在环路，建立 alias 与 name 之间的映射关系
+                this.aliasMap.put(alias, name);
+                if (logger.isTraceEnabled()) {
+                    logger.trace("Alias definition '" + alias + "' registered for name '" + name + "'");
+                }
+            }
+        }
+    }
 
-	@Override
-	public void registerAlias(String name, String alias) {
-		Assert.hasText(name, "'name' must not be empty");
-		Assert.hasText(alias, "'alias' must not be empty");
-		synchronized (this.aliasMap) {
-			if (alias.equals(name)) {
-				this.aliasMap.remove(alias);
-				if (logger.isDebugEnabled()) {
-					logger.debug("Alias definition '" + alias + "' ignored since it points to same name");
-				}
-			}
-			else {
-				String registeredName = this.aliasMap.get(alias);
-				if (registeredName != null) {
-					if (registeredName.equals(name)) {
-						// An existing alias - no need to re-register
-						return;
-					}
-					if (!allowAliasOverriding()) {
-						throw new IllegalStateException("Cannot define alias '" + alias + "' for name '" +
-								name + "': It is already registered for name '" + registeredName + "'.");
-					}
-					if (logger.isDebugEnabled()) {
-						logger.debug("Overriding alias '" + alias + "' definition for registered name '" +
-								registeredName + "' with new target name '" + name + "'");
-					}
-				}
-				checkForAliasCircle(name, alias);
-				this.aliasMap.put(alias, name);
-				if (logger.isTraceEnabled()) {
-					logger.trace("Alias definition '" + alias + "' registered for name '" + name + "'");
-				}
-			}
-		}
-	}
+    /**
+     * Determine whether alias overriding is allowed.
+     * <p>Default is {@code true}.
+     */
+    protected boolean allowAliasOverriding() {
+        return true;
+    }
 
-	/**
-	 * Determine whether alias overriding is allowed.
-	 * <p>Default is {@code true}.
-	 */
-	protected boolean allowAliasOverriding() {
-		return true;
-	}
+    /**
+     * Determine whether the given name has the given alias registered.
+     *
+     * @param name the name to check
+     * @param alias the alias to look for
+     * @since 4.2.1
+     */
+    public boolean hasAlias(String name, String alias) {
+        String registeredName = this.aliasMap.get(alias);
+        return ObjectUtils.nullSafeEquals(registeredName, name) || (registeredName != null
+                && this.hasAlias(name, registeredName));
+    }
 
-	/**
-	 * Determine whether the given name has the given alias registered.
-	 * @param name the name to check
-	 * @param alias the alias to look for
-	 * @since 4.2.1
-	 */
-	public boolean hasAlias(String name, String alias) {
-		String registeredName = this.aliasMap.get(alias);
-		return ObjectUtils.nullSafeEquals(registeredName, name) || (registeredName != null
-				&& hasAlias(name, registeredName));
-	}
+    @Override
+    public void removeAlias(String alias) {
+        synchronized (this.aliasMap) {
+            String name = this.aliasMap.remove(alias);
+            if (name == null) {
+                throw new IllegalStateException("No alias '" + alias + "' registered");
+            }
+        }
+    }
 
-	@Override
-	public void removeAlias(String alias) {
-		synchronized (this.aliasMap) {
-			String name = this.aliasMap.remove(alias);
-			if (name == null) {
-				throw new IllegalStateException("No alias '" + alias + "' registered");
-			}
-		}
-	}
+    @Override
+    public boolean isAlias(String name) {
+        return this.aliasMap.containsKey(name);
+    }
 
-	@Override
-	public boolean isAlias(String name) {
-		return this.aliasMap.containsKey(name);
-	}
+    @Override
+    public String[] getAliases(String name) {
+        List<String> result = new ArrayList<>();
+        synchronized (this.aliasMap) {
+            this.retrieveAliases(name, result);
+        }
+        return StringUtils.toStringArray(result);
+    }
 
-	@Override
-	public String[] getAliases(String name) {
-		List<String> result = new ArrayList<>();
-		synchronized (this.aliasMap) {
-			retrieveAliases(name, result);
-		}
-		return StringUtils.toStringArray(result);
-	}
+    /**
+     * Transitively retrieve all aliases for the given name.
+     *
+     * @param name the target name to find aliases for
+     * @param result the resulting aliases list
+     */
+    private void retrieveAliases(String name, List<String> result) {
+        this.aliasMap.forEach((alias, registeredName) -> {
+            if (registeredName.equals(name)) {
+                result.add(alias);
+                this.retrieveAliases(alias, result);
+            }
+        });
+    }
 
-	/**
-	 * Transitively retrieve all aliases for the given name.
-	 * @param name the target name to find aliases for
-	 * @param result the resulting aliases list
-	 */
-	private void retrieveAliases(String name, List<String> result) {
-		this.aliasMap.forEach((alias, registeredName) -> {
-			if (registeredName.equals(name)) {
-				result.add(alias);
-				retrieveAliases(alias, result);
-			}
-		});
-	}
+    /**
+     * Resolve all alias target names and aliases registered in this
+     * registry, applying the given {@link StringValueResolver} to them.
+     * <p>The value resolver may for example resolve placeholders
+     * in target bean names and even in alias names.
+     *
+     * @param valueResolver the StringValueResolver to apply
+     */
+    public void resolveAliases(StringValueResolver valueResolver) {
+        Assert.notNull(valueResolver, "StringValueResolver must not be null");
+        synchronized (this.aliasMap) {
+            Map<String, String> aliasCopy = new HashMap<>(this.aliasMap);
+            aliasCopy.forEach((alias, registeredName) -> {
+                String resolvedAlias = valueResolver.resolveStringValue(alias);
+                String resolvedName = valueResolver.resolveStringValue(registeredName);
+                if (resolvedAlias == null || resolvedName == null || resolvedAlias.equals(resolvedName)) {
+                    this.aliasMap.remove(alias);
+                } else if (!resolvedAlias.equals(alias)) {
+                    String existingName = this.aliasMap.get(resolvedAlias);
+                    if (existingName != null) {
+                        if (existingName.equals(resolvedName)) {
+                            // Pointing to existing alias - just remove placeholder
+                            this.aliasMap.remove(alias);
+                            return;
+                        }
+                        throw new IllegalStateException(
+                                "Cannot register resolved alias '" + resolvedAlias + "' (original: '" + alias +
+                                        "') for name '" + resolvedName + "': It is already registered for name '" +
+                                        registeredName + "'.");
+                    }
+                    this.checkForAliasCircle(resolvedName, resolvedAlias);
+                    this.aliasMap.remove(alias);
+                    this.aliasMap.put(resolvedAlias, resolvedName);
+                } else if (!registeredName.equals(resolvedName)) {
+                    this.aliasMap.put(alias, resolvedName);
+                }
+            });
+        }
+    }
 
-	/**
-	 * Resolve all alias target names and aliases registered in this
-	 * registry, applying the given {@link StringValueResolver} to them.
-	 * <p>The value resolver may for example resolve placeholders
-	 * in target bean names and even in alias names.
-	 * @param valueResolver the StringValueResolver to apply
-	 */
-	public void resolveAliases(StringValueResolver valueResolver) {
-		Assert.notNull(valueResolver, "StringValueResolver must not be null");
-		synchronized (this.aliasMap) {
-			Map<String, String> aliasCopy = new HashMap<>(this.aliasMap);
-			aliasCopy.forEach((alias, registeredName) -> {
-				String resolvedAlias = valueResolver.resolveStringValue(alias);
-				String resolvedName = valueResolver.resolveStringValue(registeredName);
-				if (resolvedAlias == null || resolvedName == null || resolvedAlias.equals(resolvedName)) {
-					this.aliasMap.remove(alias);
-				}
-				else if (!resolvedAlias.equals(alias)) {
-					String existingName = this.aliasMap.get(resolvedAlias);
-					if (existingName != null) {
-						if (existingName.equals(resolvedName)) {
-							// Pointing to existing alias - just remove placeholder
-							this.aliasMap.remove(alias);
-							return;
-						}
-						throw new IllegalStateException(
-								"Cannot register resolved alias '" + resolvedAlias + "' (original: '" + alias +
-								"') for name '" + resolvedName + "': It is already registered for name '" +
-								registeredName + "'.");
-					}
-					checkForAliasCircle(resolvedName, resolvedAlias);
-					this.aliasMap.remove(alias);
-					this.aliasMap.put(resolvedAlias, resolvedName);
-				}
-				else if (!registeredName.equals(resolvedName)) {
-					this.aliasMap.put(alias, resolvedName);
-				}
-			});
-		}
-	}
+    /**
+     * Check whether the given name points back to the given alias as an alias
+     * in the other direction already, catching a circular reference upfront
+     * and throwing a corresponding IllegalStateException.
+     *
+     * @param name the candidate name
+     * @param alias the candidate alias
+     * @see #registerAlias
+     * @see #hasAlias
+     */
+    protected void checkForAliasCircle(String name, String alias) {
+        if (this.hasAlias(alias, name)) {
+            throw new IllegalStateException("Cannot register alias '" + alias +
+                    "' for name '" + name + "': Circular reference - '" +
+                    name + "' is a direct or indirect alias for '" + alias + "' already");
+        }
+    }
 
-	/**
-	 * Check whether the given name points back to the given alias as an alias
-	 * in the other direction already, catching a circular reference upfront
-	 * and throwing a corresponding IllegalStateException.
-	 * @param name the candidate name
-	 * @param alias the candidate alias
-	 * @see #registerAlias
-	 * @see #hasAlias
-	 */
-	protected void checkForAliasCircle(String name, String alias) {
-		if (hasAlias(alias, name)) {
-			throw new IllegalStateException("Cannot register alias '" + alias +
-					"' for name '" + name + "': Circular reference - '" +
-					name + "' is a direct or indirect alias for '" + alias + "' already");
-		}
-	}
-
-	/**
-	 * Determine the raw name, resolving aliases to canonical names.
-	 * @param name the user-specified name
-	 * @return the transformed name
-	 */
-	public String canonicalName(String name) {
-		String canonicalName = name;
-		// Handle aliasing...
-		String resolvedName;
-		do {
-			resolvedName = this.aliasMap.get(canonicalName);
-			if (resolvedName != null) {
-				canonicalName = resolvedName;
-			}
-		}
-		while (resolvedName != null);
-		return canonicalName;
-	}
+    /**
+     * Determine the raw name, resolving aliases to canonical names.
+     *
+     * @param name the user-specified name
+     * @return the transformed name
+     */
+    public String canonicalName(String name) {
+        String canonicalName = name;
+        // Handle aliasing...
+        String resolvedName;
+        do {
+            resolvedName = this.aliasMap.get(canonicalName);
+            if (resolvedName != null) {
+                canonicalName = resolvedName;
+            }
+        }
+        while (resolvedName != null);
+        return canonicalName;
+    }
 
 }

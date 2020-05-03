@@ -222,18 +222,19 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
      * from the given resource into the bean factory.
      */
     protected void importBeanDefinitionResource(Element ele) {
+        // 获取 resource 属性，例如 <import resource="xx.xml"/>
         String location = ele.getAttribute(RESOURCE_ATTRIBUTE);
         if (!StringUtils.hasText(location)) {
             this.getReaderContext().error("Resource location must not be empty", ele);
             return;
         }
 
-        // Resolve system properties: e.g. "${user.dir}"
+        // 解析路径中的系统属性，比如可能存在如 ${user.dir} 的占位符
         location = this.getReaderContext().getEnvironment().resolveRequiredPlaceholders(location);
 
         Set<Resource> actualResources = new LinkedHashSet<>(4);
 
-        // Discover whether the location is an absolute or relative URI
+        // 检测是绝对路径，还是相对路径
         boolean absoluteLocation = false;
         try {
             absoluteLocation = ResourcePatternUtils.isUrl(location) || ResourceUtils.toURI(location).isAbsolute();
@@ -242,26 +243,31 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
             // unless it is the well-known Spring prefix "classpath*:"
         }
 
-        // Absolute or relative?
+        // 绝对路径
         if (absoluteLocation) {
             try {
+                // 加载 bean 定义，并返回加载的数目
                 int importCount = this.getReaderContext().getReader().loadBeanDefinitions(location, actualResources);
                 if (logger.isTraceEnabled()) {
                     logger.trace("Imported " + importCount + " bean definitions from URL location [" + location + "]");
                 }
             } catch (BeanDefinitionStoreException ex) {
-                this.getReaderContext().error(
-                        "Failed to import bean definitions from URL location [" + location + "]", ele, ex);
+                this.getReaderContext().error("Failed to import bean definitions from URL location [" + location + "]", ele, ex);
             }
-        } else {
+        }
+        // 相对路径
+        else {
             // No URL -> considering resource location as relative to the current file.
             try {
                 int importCount;
+                // Resource 存在多个子类，各子类的 createRelative 实现不一样，这里先使用子类的方法尝试解析
                 Resource relativeResource = this.getReaderContext().getResource().createRelative(location);
                 if (relativeResource.exists()) {
+                    // 加载 bean 定义，并返回加载的数目
                     importCount = this.getReaderContext().getReader().loadBeanDefinitions(relativeResource);
                     actualResources.add(relativeResource);
                 } else {
+                    // 解析不成功，使用默认的解析器 ResourcePatternResolver 进行解析
                     String baseLocation = this.getReaderContext().getResource().getURL().toString();
                     importCount = this.getReaderContext().getReader().loadBeanDefinitions(
                             StringUtils.applyRelativePath(baseLocation, location), actualResources);
@@ -272,11 +278,11 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
             } catch (IOException ex) {
                 this.getReaderContext().error("Failed to resolve current resource location", ele, ex);
             } catch (BeanDefinitionStoreException ex) {
-                this.getReaderContext().error(
-                        "Failed to import bean definitions from relative location [" + location + "]", ele, ex);
+                this.getReaderContext().error("Failed to import bean definitions from relative location [" + location + "]", ele, ex);
             }
         }
         Resource[] actResArray = actualResources.toArray(new Resource[0]);
+        // 解析完成之后，发布事件通知
         this.getReaderContext().fireImportProcessed(location, actResArray, this.extractSource(ele));
     }
 
@@ -284,24 +290,29 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
      * Process the given alias element, registering the alias with the registry.
      */
     protected void processAliasRegistration(Element ele) {
+        // 获取 name 属性
         String name = ele.getAttribute(NAME_ATTRIBUTE);
+        // 获取 alias 属性
         String alias = ele.getAttribute(ALIAS_ATTRIBUTE);
         boolean valid = true;
+        // name 不允许为空
         if (!StringUtils.hasText(name)) {
             this.getReaderContext().error("Name must not be empty", ele);
             valid = false;
         }
+        // alias 不允许为空
         if (!StringUtils.hasText(alias)) {
             this.getReaderContext().error("Alias must not be empty", ele);
             valid = false;
         }
         if (valid) {
             try {
+                // 注册 alias
                 this.getReaderContext().getRegistry().registerAlias(name, alias);
             } catch (Exception ex) {
-                this.getReaderContext().error("Failed to register alias '" + alias +
-                        "' for bean with name '" + name + "'", ele, ex);
+                this.getReaderContext().error("Failed to register alias '" + alias + "' for bean with name '" + name + "'", ele, ex);
             }
+            // 注册完成，发布事件通知
             this.getReaderContext().fireAliasRegistered(name, alias, this.extractSource(ele));
         }
     }
