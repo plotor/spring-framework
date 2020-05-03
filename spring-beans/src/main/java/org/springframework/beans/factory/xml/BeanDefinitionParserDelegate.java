@@ -1454,15 +1454,18 @@ public class BeanDefinitionParserDelegate {
      */
     @Nullable
     public BeanDefinition parseCustomElement(Element ele, @Nullable BeanDefinition containingBd) {
+        // 获取标签的命名空间
         String namespaceUri = this.getNamespaceURI(ele);
         if (namespaceUri == null) {
             return null;
         }
+        // 解析自定义标签命名空间处理器
         NamespaceHandler handler = this.readerContext.getNamespaceHandlerResolver().resolve(namespaceUri);
         if (handler == null) {
             this.error("Unable to locate Spring NamespaceHandler for XML schema namespace [" + namespaceUri + "]", ele);
             return null;
         }
+        // 解析标签
         return handler.parse(ele, new ParserContext(this.readerContext, this, containingBd));
     }
 
