@@ -218,12 +218,13 @@ public class SimpleAliasRegistry implements AliasRegistry {
         // Handle aliasing...
         String resolvedName;
         do {
+            // 如果是别名，则直接从映射集合中获取对应的 beanName
             resolvedName = this.aliasMap.get(canonicalName);
             if (resolvedName != null) {
                 canonicalName = resolvedName;
             }
-        }
-        while (resolvedName != null);
+            // 遍历寻找真正的 name，可能存在引用链
+        } while (resolvedName != null);
         return canonicalName;
     }
 
