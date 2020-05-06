@@ -400,7 +400,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
             }
         }
 
-        // 检查 bean 的实际类型是否是期望的类型，对应 getBean 时指定的 requireType
+        // 如果要求做类型检查，则检查 bean 的实际类型是否是期望的类型，对应 getBean 时指定的 requireType
         if (requiredType != null && !requiredType.isInstance(bean)) {
             try {
                 // 执行类型转换，转换成期望的类型
@@ -1892,13 +1892,15 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
     protected void registerDisposableBeanIfNecessary(String beanName, Object bean, RootBeanDefinition mbd) {
         AccessControlContext acc = (System.getSecurityManager() != null ? this.getAccessControlContext() : null);
         if (!mbd.isPrototype() && this.requiresDestruction(bean, mbd)) {
+            // singleton 类型
             if (mbd.isSingleton()) {
                 // Register a DisposableBean implementation that performs all destruction
-                // work for the given bean: DestructionAwareBeanPostProcessors,
-                // DisposableBean interface, custom destroy method.
+                // work for the given bean: DestructionAwareBeanPostProcessors, DisposableBean interface, custom destroy method.
                 this.registerDisposableBean(beanName,
                         new DisposableBeanAdapter(bean, beanName, mbd, this.getBeanPostProcessors(), acc));
-            } else {
+            }
+            // 其它作用域
+            else {
                 // A bean with a custom scope...
                 Scope scope = this.scopes.get(mbd.getScope());
                 if (scope == null) {

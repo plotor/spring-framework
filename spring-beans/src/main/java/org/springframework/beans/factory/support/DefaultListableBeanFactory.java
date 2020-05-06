@@ -1185,20 +1185,29 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 
     @Override
     @Nullable
-    public Object resolveDependency(DependencyDescriptor descriptor, @Nullable String requestingBeanName,
-                                    @Nullable Set<String> autowiredBeanNames, @Nullable TypeConverter typeConverter) throws BeansException {
+    public Object resolveDependency(DependencyDescriptor descriptor,
+                                    @Nullable String requestingBeanName,
+                                    @Nullable Set<String> autowiredBeanNames,
+                                    @Nullable TypeConverter typeConverter) throws BeansException {
 
+        // 获取并初始化参数名称探测器
         descriptor.initParameterNameDiscovery(this.getParameterNameDiscoverer());
+        // 支持 java8 的 Optional
         if (Optional.class == descriptor.getDependencyType()) {
             return this.createOptionalDependency(descriptor, requestingBeanName);
-        } else if (ObjectFactory.class == descriptor.getDependencyType() ||
-                ObjectProvider.class == descriptor.getDependencyType()) {
+        }
+        // 对应 ObjectFactory 类注入的特殊处理
+        else if (ObjectFactory.class == descriptor.getDependencyType()
+                || ObjectProvider.class == descriptor.getDependencyType()) {
             return new DependencyObjectProvider(descriptor, requestingBeanName);
-        } else if (javaxInjectProviderClass == descriptor.getDependencyType()) {
+        }
+        // 支持 javax.inject.Provider
+        else if (javaxInjectProviderClass == descriptor.getDependencyType()) {
             return new Jsr330Factory().createDependencyProvider(descriptor, requestingBeanName);
-        } else {
-            Object result = this.getAutowireCandidateResolver().getLazyResolutionProxyIfNecessary(
-                    descriptor, requestingBeanName);
+        }
+        // 通用处理逻辑
+        else {
+            Object result = this.getAutowireCandidateResolver().getLazyResolutionProxyIfNecessary(descriptor, requestingBeanName);
             if (result == null) {
                 result = this.doResolveDependency(descriptor, requestingBeanName, autowiredBeanNames, typeConverter);
             }
@@ -1207,11 +1216,14 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
     }
 
     @Nullable
-    public Object doResolveDependency(DependencyDescriptor descriptor, @Nullable String beanName,
-                                      @Nullable Set<String> autowiredBeanNames, @Nullable TypeConverter typeConverter) throws BeansException {
+    public Object doResolveDependency(DependencyDescriptor descriptor,
+                                      @Nullable String beanName,
+                                      @Nullable Set<String> autowiredBeanNames,
+                                      @Nullable TypeConverter typeConverter) throws BeansException {
 
         InjectionPoint previousInjectionPoint = ConstructorResolver.setCurrentInjectionPoint(descriptor);
         try {
+            // 尝试复用之前的解析结果
             Object shortcut = descriptor.resolveShortcut(this);
             if (shortcut != null) {
                 return shortcut;
@@ -1222,8 +1234,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
             if (value != null) {
                 if (value instanceof String) {
                     String strVal = this.resolveEmbeddedValue((String) value);
-                    BeanDefinition bd = (beanName != null && this.containsBean(beanName) ?
-                            this.getMergedBeanDefinition(beanName) : null);
+                    BeanDefinition bd = (beanName != null && this.containsBean(beanName) ? this.getMergedBeanDefinition(beanName) : null);
                     value = this.evaluateBeanDefinitionString(strVal, bd);
                 }
                 TypeConverter converter = (typeConverter != null ? typeConverter : this.getTypeConverter());
