@@ -521,13 +521,11 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
     @Override
     public void refresh() throws BeansException, IllegalStateException {
         synchronized (this.startupShutdownMonitor) {
-            // 1. 初始化待 refresh 的上下文环境
+            // 1. 初始化上下文环境
             this.prepareRefresh();
 
             // 2. 初始化 BeanFactory，加载并解析配置
             ConfigurableListableBeanFactory beanFactory = this.obtainFreshBeanFactory();
-
-            /* 至此，完成了简单容器的所有功能，下面开始对简单容器进行增强 */
 
             // 3. 对 BeanFactory 进行功能增强
             this.prepareBeanFactory(beanFactory);
@@ -649,13 +647,24 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
      * @param beanFactory the BeanFactory to configure
      */
     protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
-        // Tell the internal bean factory to use the context's class loader etc.
+        // 设置类加载器，用于加载 bean 对象
         beanFactory.setBeanClassLoader(this.getClassLoader());
+        // 设置表达式解析器，以提供 EL 表达式风格的属性调用
         beanFactory.setBeanExpressionResolver(new StandardBeanExpressionResolver(beanFactory.getBeanClassLoader()));
+        // 添加默认属性编辑器
         beanFactory.addPropertyEditorRegistrar(new ResourceEditorRegistrar(this, this.getEnvironment()));
 
-        // Configure the bean factory with context callbacks.
+        /*
+         * 添加后置处理器 ApplicationContextAwareProcessor, 如果实现了如下相应的 Aware 接口，则注入对应的资源：
+         * 1. EnvironmentAware
+         * 2. EmbeddedValueResolverAware
+         * 3. ResourceLoaderAware
+         * 4. ApplicationEventPublisherAware
+         * 5. MessageSourceAware
+         * 6. ApplicationContextAware
+         */
         beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this));
+        // 忽略以下接口的自动装配，即上面已经处理的 Aware 接口
         beanFactory.ignoreDependencyInterface(EnvironmentAware.class);
         beanFactory.ignoreDependencyInterface(EmbeddedValueResolverAware.class);
         beanFactory.ignoreDependencyInterface(ResourceLoaderAware.class);
@@ -665,29 +674,33 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
         // BeanFactory interface not registered as resolvable type in a plain factory.
         // MessageSource registered (and found for autowiring) as a bean.
+        // 注册几个自动装配的规则
         beanFactory.registerResolvableDependency(BeanFactory.class, beanFactory);
         beanFactory.registerResolvableDependency(ResourceLoader.class, this);
         beanFactory.registerResolvableDependency(ApplicationEventPublisher.class, this);
         beanFactory.registerResolvableDependency(ApplicationContext.class, this);
 
-        // Register early post-processor for detecting inner beans as ApplicationListeners.
+        // 注册后置处理器 ApplicationListenerDetector，用于探测 ApplicationListener 类型接口
         beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(this));
 
-        // Detect a LoadTimeWeaver and prepare for weaving, if found.
+        // 增加对 AspectJ 的支持
         if (beanFactory.containsBean(LOAD_TIME_WEAVER_BEAN_NAME)) {
             beanFactory.addBeanPostProcessor(new LoadTimeWeaverAwareProcessor(beanFactory));
             // Set a temporary ClassLoader for type matching.
             beanFactory.setTempClassLoader(new ContextTypeMatchClassLoader(beanFactory.getBeanClassLoader()));
         }
 
-        // Register default environment beans.
+        // 注册默认系统环境相关的 bean 实例
         if (!beanFactory.containsLocalBean(ENVIRONMENT_BEAN_NAME)) {
+            // Environment
             beanFactory.registerSingleton(ENVIRONMENT_BEAN_NAME, this.getEnvironment());
         }
         if (!beanFactory.containsLocalBean(SYSTEM_PROPERTIES_BEAN_NAME)) {
+            // System Properties
             beanFactory.registerSingleton(SYSTEM_PROPERTIES_BEAN_NAME, this.getEnvironment().getSystemProperties());
         }
         if (!beanFactory.containsLocalBean(SYSTEM_ENVIRONMENT_BEAN_NAME)) {
+            // System Environment
             beanFactory.registerSingleton(SYSTEM_ENVIRONMENT_BEAN_NAME, this.getEnvironment().getSystemEnvironment());
         }
     }
