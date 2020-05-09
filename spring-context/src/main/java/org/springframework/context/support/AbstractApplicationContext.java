@@ -533,10 +533,10 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
                 // 4. 模板方法，后置处理 BeanFactory 实例
                 this.postProcessBeanFactory(beanFactory);
 
-                // 5. 调用已注册的 BeanFactoryPostProcessor
+                // 5. 应用 BeanFactoryPostProcessor 处理器对 BeanFactory 实例进行后置处理
                 this.invokeBeanFactoryPostProcessors(beanFactory);
 
-                // 6. 注册 BeanPostProcessor，这里仅仅是注册，调用发生在 getBean 的时候
+                // 6. 注册 BeanPostProcessor 处理器，这里仅仅是注册，调用发生在 getBean 的时候
                 this.registerBeanPostProcessors(beanFactory);
 
                 // 7. 初始化国际化资源
@@ -722,8 +722,10 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
      * <p>Must be called before singleton instantiation.
      */
     protected void invokeBeanFactoryPostProcessors(ConfigurableListableBeanFactory beanFactory) {
+        // 应用 BeanFactoryPostProcessor 后置处理器
         PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(beanFactory, this.getBeanFactoryPostProcessors());
 
+        // AOP 支持：LoadTimeWeaver
         // Detect a LoadTimeWeaver and prepare for weaving, if found in the meantime
         // (e.g. through an @Bean method registered by ConfigurationClassPostProcessor)
         if (beanFactory.getTempClassLoader() == null && beanFactory.containsBean(LOAD_TIME_WEAVER_BEAN_NAME)) {
