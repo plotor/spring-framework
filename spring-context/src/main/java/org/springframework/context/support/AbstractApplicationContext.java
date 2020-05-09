@@ -749,25 +749,30 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
      */
     protected void initMessageSource() {
         ConfigurableListableBeanFactory beanFactory = this.getBeanFactory();
+        // 存在 ID 为 messageSource 的 bean 实例
         if (beanFactory.containsLocalBean(MESSAGE_SOURCE_BEAN_NAME)) {
+            // 获取 MessageSource 实例
             this.messageSource = beanFactory.getBean(MESSAGE_SOURCE_BEAN_NAME, MessageSource.class);
             // Make MessageSource aware of parent MessageSource.
             if (this.parent != null && this.messageSource instanceof HierarchicalMessageSource) {
                 HierarchicalMessageSource hms = (HierarchicalMessageSource) this.messageSource;
                 if (hms.getParentMessageSource() == null) {
-                    // Only set parent context as parent MessageSource if no parent MessageSource
-                    // registered already.
+                    // Only set parent context as parent MessageSource if no parent MessageSource registered already.
                     hms.setParentMessageSource(this.getInternalParentMessageSource());
                 }
             }
             if (logger.isTraceEnabled()) {
                 logger.trace("Using MessageSource [" + this.messageSource + "]");
             }
-        } else {
-            // Use empty MessageSource to be able to accept getMessage calls.
+        }
+        // 不存在 ID 为 messageSource 的 bean 实例
+        else {
+            // 创建一个 DelegatingMessageSource 代理对象
             DelegatingMessageSource dms = new DelegatingMessageSource();
+            // 尝试继承父上下文中的 MessageSource 实例
             dms.setParentMessageSource(this.getInternalParentMessageSource());
             this.messageSource = dms;
+            // 以 messageSource 作为 ID 注册代理的 DelegatingMessageSource 对象
             beanFactory.registerSingleton(MESSAGE_SOURCE_BEAN_NAME, this.messageSource);
             if (logger.isTraceEnabled()) {
                 logger.trace("No '" + MESSAGE_SOURCE_BEAN_NAME + "' bean, using [" + this.messageSource + "]");
