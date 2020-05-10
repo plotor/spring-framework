@@ -45,17 +45,17 @@
       <point x="541.5000000000001" y="201.0" />
       <point x="-68.25" y="31.5" />
     </edge>
-    <edge source="org.springframework.context.support.DelegatingMessageSource" target="org.springframework.context.HierarchicalMessageSource">
-      <point x="0.0" y="-31.5" />
-      <point x="742.7500000000001" y="201.0" />
-      <point x="678.0000000000001" y="201.0" />
-      <point x="68.25" y="31.5" />
-    </edge>
     <edge source="org.springframework.context.support.AbstractResourceBasedMessageSource" target="org.springframework.context.support.AbstractMessageSource">
       <point x="0.0" y="-31.5" />
       <point x="323.5000000000001" y="314.0" />
       <point x="417.5000000000001" y="314.0" />
       <point x="-59.25" y="31.5" />
+    </edge>
+    <edge source="org.springframework.context.support.DelegatingMessageSource" target="org.springframework.context.HierarchicalMessageSource">
+      <point x="0.0" y="-31.5" />
+      <point x="742.7500000000001" y="201.0" />
+      <point x="678.0000000000001" y="201.0" />
+      <point x="68.25" y="31.5" />
     </edge>
     <edge source="org.springframework.context.ApplicationContext" target="org.springframework.context.MessageSource">
       <point x="0.0" y="-31.5" />
@@ -64,7 +64,7 @@
       <point x="41.25" y="31.5" />
     </edge>
   </edges>
-  <settings layout="Hierarchic Group" zoom="1.0" x="488.5" y="257.5" />
+  <settings layout="Hierarchic Group" zoom="1.0" x="493.0" y="243.5" />
   <SelectedNodes />
   <Categories />
   <SCOPE>All</SCOPE>

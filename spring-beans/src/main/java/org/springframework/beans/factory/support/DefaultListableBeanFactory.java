@@ -849,36 +849,43 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
         // While this may not be part of the regular factory bootstrap, it does otherwise work fine.
         List<String> beanNames = new ArrayList<>(this.beanDefinitionNames);
 
-        // Trigger initialization of all non-lazy singleton beans...
+        // 遍历实例化所有满足条件的 bean 对象
         for (String beanName : beanNames) {
+            // 获取对应 bean 最终的 BeanDefinition 定义
             RootBeanDefinition bd = this.getMergedLocalBeanDefinition(beanName);
+            // 不是 abstract && 单例 && 不是 lazy-init
             if (!bd.isAbstract() && bd.isSingleton() && !bd.isLazyInit()) {
+                // 处理 FactoryBean
                 if (this.isFactoryBean(beanName)) {
+                    // 获取 FactoryBean 对象
                     Object bean = this.getBean(FACTORY_BEAN_PREFIX + beanName);
                     if (bean instanceof FactoryBean) {
                         final FactoryBean<?> factory = (FactoryBean<?>) bean;
                         boolean isEagerInit;
                         if (System.getSecurityManager() != null && factory instanceof SmartFactoryBean) {
-                            isEagerInit = AccessController.doPrivileged((PrivilegedAction<Boolean>)
-                                            ((SmartFactoryBean<?>) factory)::isEagerInit,
+                            isEagerInit = AccessController.doPrivileged((PrivilegedAction<Boolean>) ((SmartFactoryBean<?>) factory)::isEagerInit,
                                     this.getAccessControlContext());
                         } else {
-                            isEagerInit = (factory instanceof SmartFactoryBean &&
-                                    ((SmartFactoryBean<?>) factory).isEagerInit());
+                            isEagerInit = (factory instanceof SmartFactoryBean && ((SmartFactoryBean<?>) factory).isEagerInit());
                         }
                         if (isEagerInit) {
                             this.getBean(beanName);
                         }
                     }
-                } else {
+                }
+                // 加载普通 bean 对象
+                else {
                     this.getBean(beanName);
                 }
             }
         }
 
-        // Trigger post-initialization callback for all applicable beans...
+        /* 完成对所有满足条件的 singleton bean 的实例化操作 */
+
+        // 遍历处理所有实现了 SmartInitializingSingleton 接口的 bean 实例
         for (String beanName : beanNames) {
             Object singletonInstance = this.getSingleton(beanName);
+            // 回调 SmartInitializingSingleton#afterSingletonsInstantiated 方法
             if (singletonInstance instanceof SmartInitializingSingleton) {
                 final SmartInitializingSingleton smartSingleton = (SmartInitializingSingleton) singletonInstance;
                 if (System.getSecurityManager() != null) {
