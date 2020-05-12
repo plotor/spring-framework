@@ -295,7 +295,9 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
     @Override
     public Object postProcessAfterInitialization(@Nullable Object bean, String beanName) {
         if (bean != null) {
+            // 如果 beanName 不为空则直接使用 beanName（FactoryBean 则使用 &{beanName}），否则使用 bean 的 className
             Object cacheKey = this.getCacheKey(bean.getClass(), beanName);
+            // 尝试对 bean 进行增强，创建并返回增强后的代理对象
             if (this.earlyProxyReferences.remove(cacheKey) != bean) {
                 return this.wrapIfNecessary(bean, beanName, cacheKey);
             }
@@ -333,19 +335,23 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
      * @return a proxy wrapping the bean, or the raw bean instance as-is
      */
     protected Object wrapIfNecessary(Object bean, String beanName, Object cacheKey) {
+        // 已经处理过，直接返回
         if (StringUtils.hasLength(beanName) && this.targetSourcedBeans.contains(beanName)) {
             return bean;
         }
+        // 不需要进行增强的 bean 实例，直接跳过
         if (Boolean.FALSE.equals(this.advisedBeans.get(cacheKey))) {
             return bean;
         }
+        // 对于 AOP 的基础支撑类，或者指定不需要被代理的类，设置为不进行代理
         if (this.isInfrastructureClass(bean.getClass()) || this.shouldSkip(bean.getClass(), beanName)) {
             this.advisedBeans.put(cacheKey, Boolean.FALSE);
             return bean;
         }
 
-        // Create proxy if we have advice.
+        // 获取适用于当前 bean 的增强器
         Object[] specificInterceptors = this.getAdvicesAndAdvisorsForBean(bean.getClass(), beanName, null);
+        // 基于获取到的增强器为当前 bean 创建代理对象
         if (specificInterceptors != DO_NOT_PROXY) {
             this.advisedBeans.put(cacheKey, Boolean.TRUE);
             Object proxy = this.createProxy(
