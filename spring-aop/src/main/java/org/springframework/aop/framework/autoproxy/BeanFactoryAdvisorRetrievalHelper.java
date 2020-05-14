@@ -78,6 +78,7 @@ public class BeanFactoryAdvisorRetrievalHelper {
 
         List<Advisor> advisors = new ArrayList<>();
         for (String name : advisorNames) {
+            // 合格的 bean
             if (this.isEligibleBean(name)) {
                 if (this.beanFactory.isCurrentlyInCreation(name)) {
                     if (logger.isTraceEnabled()) {
@@ -85,6 +86,7 @@ public class BeanFactoryAdvisorRetrievalHelper {
                     }
                 } else {
                     try {
+                        // 获取 bean 实例
                         advisors.add(this.beanFactory.getBean(name, Advisor.class));
                     } catch (BeanCreationException ex) {
                         Throwable rootCause = ex.getMostSpecificCause();

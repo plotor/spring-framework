@@ -81,6 +81,7 @@ public class BeanFactoryAspectJAdvisorsBuilder {
      * @see #isEligibleBean
      */
     public List<Advisor> buildAspectJAdvisors() {
+        // 封装筛选出来的 Advisor beanName
         List<String> aspectNames = this.aspectBeanNames;
 
         // 未解析过，执行解析
@@ -107,6 +108,7 @@ public class BeanFactoryAspectJAdvisorsBuilder {
                         // 如果是切面 bean 类型
                         if (this.advisorFactory.isAspect(beanType)) {
                             aspectNames.add(beanName);
+                            // 使用 AspectMetadata 进行包装
                             AspectMetadata amd = new AspectMetadata(beanType, beanName);
                             if (amd.getAjType().getPerClause().getKind() == PerClauseKind.SINGLETON) {
                                 MetadataAwareAspectInstanceFactory factory = new BeanFactoryAspectInstanceFactory(this.beanFactory, beanName);

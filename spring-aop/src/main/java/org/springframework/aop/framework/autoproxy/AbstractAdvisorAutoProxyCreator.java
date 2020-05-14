@@ -70,11 +70,11 @@ public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyC
     @Nullable
     protected Object[] getAdvicesAndAdvisorsForBean(
             Class<?> beanClass, String beanName, @Nullable TargetSource targetSource) {
-        // 获取适用于当前 bean 的增强器
+        // 获取适用于当前 bean 的 Advisor
         List<Advisor> advisors = this.findEligibleAdvisors(beanClass, beanName);
-        // 没有增强，不进行代理
+        // 没有合格的 Advisor，不进行代理
         if (advisors.isEmpty()) {
-            return DO_NOT_PROXY;
+            return DO_NOT_PROXY; // null
         }
         return advisors.toArray();
     }
@@ -91,13 +91,13 @@ public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyC
      * @see #extendAdvisors
      */
     protected List<Advisor> findEligibleAdvisors(Class<?> beanClass, String beanName) {
-        // 获取所有候选的增强器（包括注解的、XML 中配置的）
+        // 获取所有候选的 Advisor（包括注解的、XML 中配置的）
         List<Advisor> candidateAdvisors = this.findCandidateAdvisors();
-        // 从所有增强器中寻找适用于当前 bean 的增强器
+        // 从所有 Advisor 中寻找适用于当前 bean 的增强器
         List<Advisor> eligibleAdvisors = this.findAdvisorsThatCanApply(candidateAdvisors, beanClass, beanName);
-        // 如果增强器不为空，则在最前面追加一个 ExposeInvocationInterceptor
+        // 如果 Advisor 不为空，则在最前面追加一个 ExposeInvocationInterceptor
         this.extendAdvisors(eligibleAdvisors);
-        // 对增强器进行排序
+        // 对 Advisor 进行排序
         if (!eligibleAdvisors.isEmpty()) {
             eligibleAdvisors = this.sortAdvisors(eligibleAdvisors);
         }
@@ -126,7 +126,6 @@ public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyC
      */
     protected List<Advisor> findAdvisorsThatCanApply(
             List<Advisor> candidateAdvisors, Class<?> beanClass, String beanName) {
-
         ProxyCreationContext.setCurrentProxiedBeanName(beanName);
         try {
             return AopUtils.findAdvisorsThatCanApply(candidateAdvisors, beanClass);
