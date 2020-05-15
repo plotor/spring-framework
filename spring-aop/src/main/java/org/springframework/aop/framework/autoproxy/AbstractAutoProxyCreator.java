@@ -445,39 +445,49 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
      * @param beanName the name of the bean
      * @param specificInterceptors the set of interceptors that is
      * specific to this bean (may be empty, but not null)
-     * @param targetSource the TargetSource for the proxy,
-     * already pre-configured to access the bean
+     * @param targetSource the TargetSource for the proxy, already pre-configured to access the bean
      * @return the AOP proxy for the bean
      * @see #buildAdvisors
      */
-    protected Object createProxy(Class<?> beanClass, @Nullable String beanName,
-                                 @Nullable Object[] specificInterceptors, TargetSource targetSource) {
+    protected Object createProxy(Class<?> beanClass,
+                                 @Nullable String beanName,
+                                 @Nullable Object[] specificInterceptors,
+                                 TargetSource targetSource) {
 
         if (this.beanFactory instanceof ConfigurableListableBeanFactory) {
             AutoProxyUtils.exposeTargetClass((ConfigurableListableBeanFactory) this.beanFactory, beanName, beanClass);
         }
 
+        // ProxyFactory 用于为目标 bean 实例创建代理对象
         ProxyFactory proxyFactory = new ProxyFactory();
         proxyFactory.copyFrom(this);
 
+        // proxy-target-class = false，表示使用 JDK 原生动态代理
         if (!proxyFactory.isProxyTargetClass()) {
+            // 检测当前 bean 是否应该基于类而非接口生成代理对象，即包含 preserveTargetClass=true 属性
             if (this.shouldProxyTargetClass(beanClass, beanName)) {
                 proxyFactory.setProxyTargetClass(true);
-            } else {
+            }
+            // 如果是基于接口生成代理，则添加需要代理的接口到 ProxyFactory 中（除内置 callback 接口、语言内在接口，以及标记接口）
+            else {
                 this.evaluateProxyInterfaces(beanClass, proxyFactory);
             }
         }
 
+        // 将拦截器封装成 Advisor 对象
         Advisor[] advisors = this.buildAdvisors(beanName, specificInterceptors);
         proxyFactory.addAdvisors(advisors);
         proxyFactory.setTargetSource(targetSource);
+        // 模板方法，定制代理工厂
         this.customizeProxyFactory(proxyFactory);
 
+        // 设置代理工厂被配置之后是否还允许修改，默认为 false，表示不允许修改
         proxyFactory.setFrozen(this.freezeProxy);
         if (this.advisorsPreFiltered()) {
             proxyFactory.setPreFiltered(true);
         }
 
+        // 基于 ProxyFactory 创建代理类
         return proxyFactory.getProxy(this.getProxyClassLoader());
     }
 
