@@ -3,120 +3,120 @@
   <ID>JAVA</ID>
   <OriginalElement>org.springframework.transaction.PlatformTransactionManager</OriginalElement>
   <nodes>
-    <node x="1584.25" y="389.0">org.springframework.jms.connection.JmsTransactionManager</node>
-    <node x="0.0" y="226.0">org.springframework.transaction.support.CallbackPreferringPlatformTransactionManager</node>
-    <node x="894.25" y="226.0">org.springframework.transaction.support.AbstractPlatformTransactionManager</node>
-    <node x="971.25" y="389.0">org.springframework.jca.cci.connection.CciLocalTransactionManager</node>
-    <node x="966.25" y="0.0">org.springframework.transaction.TransactionManager</node>
-    <node x="714.25" y="389.0">org.springframework.orm.jpa.JpaTransactionManager</node>
-    <node x="930.25" y="113.0">org.springframework.transaction.PlatformTransactionManager</node>
-    <node x="480.5" y="502.0">org.springframework.transaction.jta.WebLogicJtaTransactionManager</node>
-    <node x="142.5" y="502.0">org.springframework.transaction.jta.WebSphereUowTransactionManager</node>
-    <node x="1841.25" y="389.0">org.springframework.jdbc.datasource.DataSourceTransactionManager</node>
-    <node x="457.25" y="389.0">org.springframework.transaction.jta.JtaTransactionManager</node>
-    <node x="1273.25" y="389.0">org.springframework.orm.hibernate5.HibernateTransactionManager</node>
-    <node x="1350.5" y="226.0">org.springframework.transaction.support.ResourceTransactionManager</node>
+    <node x="944.7500000000001" y="305.0">org.springframework.jms.connection.JmsTransactionManager</node>
+    <node x="1612.25" y="170.0">org.springframework.transaction.support.CallbackPreferringPlatformTransactionManager</node>
+    <node x="591.0000000000001" y="170.0">org.springframework.transaction.support.AbstractPlatformTransactionManager</node>
+    <node x="1209.75" y="305.0">org.springframework.jca.cci.connection.CciLocalTransactionManager</node>
+    <node x="1019.0000000000001" y="0.0">org.springframework.transaction.TransactionManager</node>
+    <node x="679.7500000000001" y="305.0">org.springframework.orm.jpa.JpaTransactionManager</node>
+    <node x="984.0000000000001" y="85.0">org.springframework.transaction.PlatformTransactionManager</node>
+    <node x="0.0" y="390.0">org.springframework.transaction.jta.WebLogicJtaTransactionManager</node>
+    <node x="1592.5" y="390.0">org.springframework.transaction.jta.WebSphereUowTransactionManager</node>
+    <node x="1518.75" y="305.0">org.springframework.jdbc.datasource.DataSourceTransactionManager</node>
+    <node x="96.75000000000011" y="305.0">org.springframework.transaction.jta.JtaTransactionManager</node>
+    <node x="361.7500000000001" y="305.0">org.springframework.orm.hibernate5.HibernateTransactionManager</node>
+    <node x="984.0000000000001" y="170.0">org.springframework.transaction.support.ResourceTransactionManager</node>
   </nodes>
   <notes />
   <edges>
     <edge source="org.springframework.jdbc.datasource.DataSourceTransactionManager" target="org.springframework.transaction.support.AbstractPlatformTransactionManager">
-      <point x="-75.0" y="-31.5" />
-      <point x="1916.25" y="319.0" />
-      <point x="1218.75" y="319.0" />
-      <point x="147.5" y="31.5" />
+      <point x="-76.75" y="-17.5" />
+      <point x="1595.5" y="235.0" />
+      <point x="921.0000000000001" y="235.0" />
+      <point x="150.0" y="17.5" />
     </edge>
     <edge source="org.springframework.jms.connection.JmsTransactionManager" target="org.springframework.transaction.support.AbstractPlatformTransactionManager">
-      <point x="-59.25" y="-31.5" />
-      <point x="1643.5" y="339.0" />
-      <point x="1159.75" y="339.0" />
-      <point x="88.5" y="31.5" />
+      <point x="-61.25" y="-17.5" />
+      <point x="1006.0000000000001" y="265.0" />
+      <point x="801.0000000000001" y="265.0" />
+      <point x="30.0" y="17.5" />
     </edge>
     <edge source="org.springframework.transaction.jta.WebSphereUowTransactionManager" target="org.springframework.transaction.jta.JtaTransactionManager">
-      <point x="79.5" y="-31.5" />
-      <point x="381.0" y="477.0" />
-      <point x="516.5" y="477.0" />
-      <point x="-59.25" y="31.5" />
+      <point x="-81.25" y="-17.5" />
+      <point x="1673.75" y="365.0" />
+      <point x="280.5000000000001" y="365.0" />
+      <point x="61.25" y="17.5" />
     </edge>
     <edge source="org.springframework.transaction.jta.WebLogicJtaTransactionManager" target="org.springframework.transaction.jta.JtaTransactionManager">
-      <point x="0.0" y="-31.5" />
-      <point x="59.25" y="31.5" />
+      <point x="0.0" y="-17.5" />
+      <point x="-61.25" y="17.5" />
     </edge>
     <edge source="org.springframework.orm.jpa.JpaTransactionManager" target="org.springframework.transaction.support.ResourceTransactionManager">
-      <point x="59.25" y="-31.5" />
-      <point x="892.0" y="359.0" />
-      <point x="1378.7" y="359.0" />
-      <point x="-112.79999999999995" y="31.5" />
+      <point x="61.25" y="-17.5" />
+      <point x="863.5000000000001" y="285.0" />
+      <point x="1070.7000000000003" y="285.0" />
+      <point x="-57.799999999999955" y="17.5" />
     </edge>
     <edge source="org.springframework.orm.hibernate5.HibernateTransactionManager" target="org.springframework.transaction.support.AbstractPlatformTransactionManager">
-      <point x="-72.75" y="-31.5" />
-      <point x="1346.0" y="349.0" />
-      <point x="1100.75" y="349.0" />
-      <point x="29.5" y="31.5" />
-    </edge>
-    <edge source="org.springframework.jca.cci.connection.CciLocalTransactionManager" target="org.springframework.transaction.support.ResourceTransactionManager">
-      <point x="70.5" y="-31.5" />
-      <point x="1182.75" y="369.0" />
-      <point x="1435.1" y="369.0" />
-      <point x="-56.40000000000009" y="31.5" />
+      <point x="-74.5" y="-17.5" />
+      <point x="436.2500000000001" y="265.0" />
+      <point x="681.0000000000001" y="265.0" />
+      <point x="-90.0" y="17.5" />
     </edge>
     <edge source="org.springframework.jca.cci.connection.CciLocalTransactionManager" target="org.springframework.transaction.support.AbstractPlatformTransactionManager">
-      <point x="-70.5" y="-31.5" />
-      <point x="-29.5" y="31.5" />
+      <point x="-72.25" y="-17.5" />
+      <point x="1282.0" y="255.0" />
+      <point x="861.0000000000001" y="255.0" />
+      <point x="90.0" y="17.5" />
+    </edge>
+    <edge source="org.springframework.jca.cci.connection.CciLocalTransactionManager" target="org.springframework.transaction.support.ResourceTransactionManager">
+      <point x="72.25" y="-17.5" />
+      <point x="1426.5" y="245.0" />
+      <point x="1186.3000000000002" y="245.0" />
+      <point x="57.799999999999955" y="17.5" />
     </edge>
     <edge source="org.springframework.jms.connection.JmsTransactionManager" target="org.springframework.transaction.support.ResourceTransactionManager">
-      <point x="59.25" y="-31.5" />
-      <point x="1762.0" y="329.0" />
-      <point x="1547.9" y="329.0" />
-      <point x="56.40000000000009" y="31.5" />
-    </edge>
-    <edge source="org.springframework.orm.hibernate5.HibernateTransactionManager" target="org.springframework.transaction.support.ResourceTransactionManager">
-      <point x="72.75" y="-31.5" />
-      <point x="0.0" y="31.5" />
+      <point x="61.25" y="-17.5" />
+      <point x="0.0" y="17.5" />
     </edge>
     <edge source="org.springframework.orm.jpa.JpaTransactionManager" target="org.springframework.transaction.support.AbstractPlatformTransactionManager">
-      <point x="-59.25" y="-31.5" />
-      <point x="773.5" y="349.0" />
-      <point x="982.75" y="349.0" />
-      <point x="-88.5" y="31.5" />
+      <point x="-61.25" y="-17.5" />
+      <point x="-30.0" y="17.5" />
+    </edge>
+    <edge source="org.springframework.orm.hibernate5.HibernateTransactionManager" target="org.springframework.transaction.support.ResourceTransactionManager">
+      <point x="74.5" y="-17.5" />
+      <point x="585.2500000000001" y="275.0" />
+      <point x="1012.9000000000001" y="275.0" />
+      <point x="-115.60000000000002" y="17.5" />
     </edge>
     <edge source="org.springframework.transaction.support.CallbackPreferringPlatformTransactionManager" target="org.springframework.transaction.PlatformTransactionManager">
-      <point x="0.0" y="-31.5" />
-      <point x="222.0" y="201.0" />
-      <point x="977.25" y="201.0" />
-      <point x="-94.0" y="31.5" />
+      <point x="0.0" y="-17.5" />
+      <point x="1836.25" y="145.0" />
+      <point x="1224.8333333333335" y="145.0" />
+      <point x="96.33333333333326" y="17.5" />
     </edge>
     <edge source="org.springframework.transaction.jta.JtaTransactionManager" target="org.springframework.transaction.support.AbstractPlatformTransactionManager">
-      <point x="0.0" y="-31.5" />
-      <point x="575.75" y="339.0" />
-      <point x="923.75" y="339.0" />
-      <point x="-147.5" y="31.5" />
+      <point x="0.0" y="-17.5" />
+      <point x="219.2500000000001" y="255.0" />
+      <point x="621.0000000000001" y="255.0" />
+      <point x="-150.0" y="17.5" />
     </edge>
     <edge source="org.springframework.jdbc.datasource.DataSourceTransactionManager" target="org.springframework.transaction.support.ResourceTransactionManager">
-      <point x="75.0" y="-31.5" />
-      <point x="2066.25" y="309.0" />
-      <point x="1604.3" y="309.0" />
-      <point x="112.79999999999995" y="31.5" />
+      <point x="76.75" y="-17.5" />
+      <point x="1749.0" y="225.0" />
+      <point x="1244.1" y="225.0" />
+      <point x="115.59999999999991" y="17.5" />
     </edge>
     <edge source="org.springframework.transaction.jta.WebSphereUowTransactionManager" target="org.springframework.transaction.support.CallbackPreferringPlatformTransactionManager">
-      <point x="-79.5" y="-31.5" />
-      <point x="0.0" y="31.5" />
+      <point x="81.25" y="-17.5" />
+      <point x="0.0" y="17.5" />
     </edge>
     <edge source="org.springframework.transaction.support.ResourceTransactionManager" target="org.springframework.transaction.PlatformTransactionManager">
-      <point x="0.0" y="-31.5" />
-      <point x="1491.5" y="201.0" />
-      <point x="1165.25" y="201.0" />
-      <point x="94.0" y="31.5" />
+      <point x="0.0" y="-17.5" />
+      <point x="0.0" y="17.5" />
     </edge>
     <edge source="org.springframework.transaction.support.AbstractPlatformTransactionManager" target="org.springframework.transaction.PlatformTransactionManager">
-      <point x="0.0" y="-31.5" />
-      <point x="0.0" y="31.5" />
+      <point x="0.0" y="-17.5" />
+      <point x="771.0000000000001" y="145.0" />
+      <point x="1032.166666666667" y="145.0" />
+      <point x="-96.33333333333326" y="17.5" />
     </edge>
     <edge source="org.springframework.transaction.PlatformTransactionManager" target="org.springframework.transaction.TransactionManager">
-      <point x="0.0" y="-31.5" />
-      <point x="0.0" y="31.5" />
+      <point x="0.0" y="-17.5" />
+      <point x="0.0" y="17.5" />
     </edge>
   </edges>
-  <settings layout="Hierarchic Group" zoom="0.7037401574803149" x="1006.0" y="282.5" />
+  <settings layout="Hierarchic Group" zoom="0.7547256800368833" x="1074.5" y="484.47251069028715" />
   <SelectedNodes />
   <Categories />
   <SCOPE>All</SCOPE>
